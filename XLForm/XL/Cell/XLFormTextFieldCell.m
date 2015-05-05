@@ -131,7 +131,8 @@
     
     self.textLabel.text = ((self.rowDescriptor.required && self.rowDescriptor.title && self.rowDescriptor.sectionDescriptor.formDescriptor.addAsteriskToRequiredRowsTitle) ? [NSString stringWithFormat:@"%@*", self.rowDescriptor.title] : self.rowDescriptor.title);
     
-    self.textField.text = self.rowDescriptor.value ? [self.rowDescriptor.value displayText] : self.rowDescriptor.noValueDisplayText;
+    self.textField.text = [self.rowDescriptor displayTextValue];
+//    self.textField.text = self.rowDescriptor.value ? [self.rowDescriptor.value displayText] : self.rowDescriptor.noValueDisplayText;
     [self.textField setEnabled:!self.rowDescriptor.isDisabled];
     self.textField.textColor = self.rowDescriptor.isDisabled ? [UIColor grayColor] : [UIColor blackColor];
     self.textField.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
@@ -245,6 +246,12 @@
 - (void)textFieldDidBeginEditing:(UITextField *)textField
 {
     [self.formViewController beginEditing:self.rowDescriptor];
+    
+    // set the input to the raw value if we have a formatter and it shouldn't be used during input
+    if (self.rowDescriptor.valueFormatter) {
+        self.textField.text = [self.rowDescriptor editTextValue];
+    }
+    
     [self.formViewController textFieldDidBeginEditing:textField];
 }
 
@@ -252,6 +259,12 @@
 {
     [self textFieldDidChange:textField];
     [self.formViewController endEditing:self.rowDescriptor];
+    
+    // losing input, replace the text field with the formatted value
+    if (self.rowDescriptor.valueFormatter) {
+        self.textField.text = [self.rowDescriptor displayTextValue];
+    }
+    
     [self.formViewController textFieldDidEndEditing:textField];
 }
 
@@ -260,13 +273,38 @@
 
 - (void)textFieldDidChange:(UITextField *)textField{
     if([self.textField.text length] > 0) {
-        if ([self.rowDescriptor.rowType isEqualToString:XLFormRowDescriptorTypeNumber] || [self.rowDescriptor.rowType isEqualToString:XLFormRowDescriptorTypeDecimal]){
-            self.rowDescriptor.value =  @([self.textField.text doubleValue]);
-        } else if ([self.rowDescriptor.rowType isEqualToString:XLFormRowDescriptorTypeInteger]){
-            self.rowDescriptor.value = @([self.textField.text integerValue]);
-        } else {
-            self.rowDescriptor.value = self.textField.text;
+
+        BOOL didUseFormatter = NO;
+        
+        if (self.rowDescriptor.valueFormatter && self.rowDescriptor.useValueFormatterDuringInput)
+        {
+            // use generic getObjectValue:forString:errorDescription and stringForObjectValue
+            NSString *errorDescription = nil;
+            NSString *objectValue = nil;
+            
+            if ([ self.rowDescriptor.valueFormatter getObjectValue:&objectValue forString:textField.text errorDescription:&errorDescription]) {
+                NSString *formattedValue = [self.rowDescriptor.valueFormatter stringForObjectValue:objectValue];
+                
+                self.rowDescriptor.value = objectValue;
+                textField.text = formattedValue;
+                didUseFormatter = YES;
+            }
         }
+        
+        // only do this conversion if we didn't use the formatter
+        if (!didUseFormatter)
+        {
+            if ([self.rowDescriptor.rowType isEqualToString:XLFormRowDescriptorTypeDecimal]){
+                self.rowDescriptor.value = [NSDecimalNumber decimalNumberWithString:self.textField.text];
+            } else if ([self.rowDescriptor.rowType isEqualToString:XLFormRowDescriptorTypeNumber]){
+                self.rowDescriptor.value =  @([self.textField.text doubleValue]);
+            } else if ([self.rowDescriptor.rowType isEqualToString:XLFormRowDescriptorTypeInteger]){
+                self.rowDescriptor.value = @([self.textField.text integerValue]);
+            } else {
+                self.rowDescriptor.value = self.textField.text;
+            }
+        }
+        
     } else {
         self.rowDescriptor.value = nil;
     }

@@ -131,6 +131,41 @@
     }];
 }
 
+-(NSString*)editTextValue
+{
+    if (self.value) {
+        if (self.valueFormatter) {
+            if (self.useValueFormatterDuringInput) {
+                return [self displayTextValue];
+            }else{
+                // have formatter, but we don't want to use it during editing
+                return [self.value displayText];
+            }
+        }else{
+            // have value, but no formatter, use the value's displayText
+            return [self.value displayText];
+        }
+    }else{
+        // placeholder
+        return @"";
+    }
+}
+
+-(NSString*)displayTextValue
+{
+    if (self.value) {
+        if (self.valueFormatter) {
+            return [self.valueFormatter stringForObjectValue:self.value];
+        }
+        else{
+            return [self.value displayText];
+        }
+    }
+    else {
+        return self.noValueDisplayText;
+    }
+}
+
 -(NSMutableDictionary *)cellConfig
 {
     if (_cellConfig) return _cellConfig;

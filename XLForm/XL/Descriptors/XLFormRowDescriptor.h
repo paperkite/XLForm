@@ -51,6 +51,9 @@ typedef NS_ENUM(NSUInteger, XLFormPresentationMode) {
 @property Class valueTransformer;
 @property UITableViewCellStyle cellStyle;
 
+@property BOOL useValueFormatterDuringInput;
+@property NSFormatter *valueFormatter;
+
 @property (nonatomic) NSMutableDictionary *cellConfig;
 @property (nonatomic) NSMutableDictionary *cellConfigIfDisabled;
 @property (nonatomic) NSMutableDictionary *cellConfigAtConfigure;
@@ -76,6 +79,8 @@ typedef NS_ENUM(NSUInteger, XLFormPresentationMode) {
 -(void)removeValidator:(id<XLFormValidatorProtocol>)validator;
 -(XLFormValidationStatus *)doValidation;
 
+- (NSString*) displayTextValue;
+- (NSString*) editTextValue;
 // ===========================
 // property used for Selectors
 // ===========================
